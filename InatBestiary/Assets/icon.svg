@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- iNat green rounded square background -->
+  <rect width="512" height="512" rx="96" fill="#74AC00"/>
+
+  <!-- Camera body -->
+  <rect x="64" y="196" width="384" height="240" rx="32" fill="white"/>
+
+  <!-- Viewfinder hump -->
+  <path d="M176 196 L176 158 Q176 142 192 142 L320 142 Q336 142 336 158 L336 196 Z" fill="white"/>
+
+  <!-- Lens outer ring (near-black dark green) -->
+  <circle cx="256" cy="320" r="92" fill="#162800"/>
+
+  <!-- Lens body (dark green) -->
+  <circle cx="256" cy="320" r="74" fill="#2D5200"/>
+
+  <!-- Leaf inside lens (white, organic shape) -->
+  <path d="
+    M 256 256
+    C 298 264 318 294 314 326
+    C 310 358 282 376 256 380
+    C 230 376 202 358 198 326
+    C 194 294 214 264 256 256
+    Z" fill="white"/>
+
+  <!-- Leaf midrib -->
+  <path d="M 256 264 Q 258 318 256 374"
+        stroke="#2D5200" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+  <!-- Left lateral vein -->
+  <path d="M 256 300 Q 232 308 220 322"
+        stroke="#2D5200" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Right lateral vein -->
+  <path d="M 256 300 Q 280 308 292 322"
+        stroke="#2D5200" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Lens glare highlight -->
+  <ellipse cx="230" cy="294" rx="18" ry="11"
+           fill="white" opacity="0.22"
+           transform="rotate(-35, 230, 294)"/>
+
+  <!-- Shutter button -->
+  <circle cx="374" cy="228" r="22" fill="#5A8C00"/>
+  <circle cx="374" cy="228" r="14" fill="#4A7A00"/>
+
+  <!-- Flash window -->
+  <rect x="108" y="212" width="44" height="28" rx="8" fill="#D4EDAA" opacity="0.7"/>
+</svg>
