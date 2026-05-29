@@ -1,0 +1,19 @@
+# Build output
+publish/
+**/bin/
+**/obj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# SQLite databases (user catalog data — generated at runtime)
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+Thumbs.db
+.DS_Store

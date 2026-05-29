@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="InatBestiary.Views.UsernameDialog"
+        Title="iNaturalist Username"
+        Width="360" Height="160"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="20" Spacing="12">
+        <TextBlock Text="Enter iNaturalist username to match observations:"
+                   Foreground="#CCCCCC" FontSize="13" TextWrapping="Wrap"/>
+        <TextBox x:Name="UsernameBox"
+                 Watermark="iNaturalist username"
+                 FontSize="13"/>
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="Cancel" Click="CancelClick" Padding="14,6" FontSize="13"/>
+            <Button Content="Search" Click="OkClick"    Padding="14,6" FontSize="13"
+                    IsDefault="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

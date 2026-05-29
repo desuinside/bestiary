@@ -1,0 +1,415 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:InatBestiary.ViewModels"
+        xmlns:models="using:InatBestiary.Models"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="InatBestiary.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Icon="avares://InatBestiary/Assets/icon.ico"
+        Width="1280" Height="760"
+        MinWidth="800" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#181818">
+
+    <Window.Styles>
+        <Style Selector="Button.toolActive">
+            <Setter Property="Background" Value="#0058A3"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.toolActive:pointerover">
+            <Setter Property="Background" Value="#006AC0"/>
+        </Style>
+        <Style Selector="ToggleButton.filter">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Border.listRow:pointerover">
+            <Setter Property="Background" Value="#242424"/>
+        </Style>
+        <Style Selector="Button.sortHeader">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#555555"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.sortHeader:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+
+        <!-- ── Toolbar ── -->
+        <Border DockPanel.Dock="Top"
+                Background="#222222"
+                BorderBrush="#333333"
+                BorderThickness="0,0,0,1"
+                Padding="10,7">
+            <DockPanel>
+                <Button Content="Open Folder"
+                        Click="OpenFolderClick"
+                        DockPanel.Dock="Left"
+                        Padding="12,5"
+                        FontSize="13"/>
+
+                <Button DockPanel.Dock="Left"
+                        Margin="6,0,0,0"
+                        Padding="12,5"
+                        FontSize="13"
+                        IsVisible="{Binding HasCatalog}"
+                        ToolTip.Tip="Database and tagging operations">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Build taxonomy database"
+                                      Command="{Binding SyncDatabaseCommand}"
+                                      ToolTip.Tip="Scan all folders and map species names to iNaturalist taxa (skips already-mapped)"/>
+                            <Separator/>
+                            <MenuItem Header="Tag with taxonomy keywords"
+                                      Command="{Binding TagPhotosCommand}"
+                                      ToolTip.Tip="Write iNaturalist taxonomy hierarchy to XMP keywords"/>
+                            <MenuItem Header="Tag with GPS from iNaturalist…"
+                                      Command="{Binding TagWithLocationsCommand}"
+                                      ToolTip.Tip="Match photos to your iNaturalist observations by date and write GPS coordinates"/>
+                            <Separator/>
+                            <MenuItem Header="Refresh location names"
+                                      Command="{Binding RefreshLocationsCommand}"
+                                      ToolTip.Tip="Look up location names for photos with GPS that have no cached location"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                    <Panel>
+                        <TextBlock Text="Database ▾"
+                                   IsVisible="{Binding !IsBusy}"/>
+                        <TextBlock Text="Building…"
+                                   IsVisible="{Binding IsSyncing}"
+                                   Foreground="#AAAAAA"/>
+                        <TextBlock Text="Tagging…"
+                                   IsVisible="{Binding IsTagging}"
+                                   Foreground="#AAAAAA"/>
+                        <TextBlock Text="Resolving…"
+                                   IsVisible="{Binding IsResolvingLocations}"
+                                   Foreground="#AAAAAA"/>
+                    </Panel>
+                </Button>
+
+                <!-- Right-side controls -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+
+                    <!-- Clear search -->
+                    <Button Content="✕"
+                            Command="{Binding ClearSearchCommand}"
+                            IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            ToolTip.Tip="Clear search"
+                            Padding="8,5" FontSize="13" Foreground="#AAAAAA"/>
+                    <Border Width="1" Background="#3A3A3A" Margin="2,2"
+                            IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                    <!-- iNaturalist autocomplete toggle -->
+                    <ToggleButton Classes="filter"
+                                  IsChecked="{Binding UseINaturalist}"
+                                  ToolTip.Tip="Suggest species names from iNaturalist while searching">
+                        iNaturalist
+                    </ToggleButton>
+
+                    <!-- JPG-only toggle -->
+                    <ToggleButton Classes="filter"
+                                  IsChecked="{Binding JpgOnly}"
+                                  ToolTip.Tip="Show JPEG files only (toggle for all formats)">
+                        JPG only
+                    </ToggleButton>
+
+                    <Border Width="1" Background="#3A3A3A" Margin="4,2"/>
+
+                    <!-- View: preview cards -->
+                    <Button Content="⊞"
+                            Command="{Binding SetPreviewModeCommand}"
+                            Classes.toolActive="{Binding IsPreviewMode}"
+                            ToolTip.Tip="Preview cards"
+                            Padding="8,5" FontSize="16"/>
+
+                    <!-- View: list -->
+                    <Button Content="☰"
+                            Command="{Binding SetListModeCommand}"
+                            Classes.toolActive="{Binding !IsPreviewMode}"
+                            ToolTip.Tip="List view"
+                            Padding="8,5" FontSize="16"/>
+                </StackPanel>
+
+                <!-- Search / autocomplete (fills remaining space) -->
+                <AutoCompleteBox x:Name="SearchBox"
+                                 Text="{Binding SearchText}"
+                                 Watermark="Search files, folders, or species…"
+                                 MinimumPrefixLength="2"
+                                 MinimumPopulateDelay="0:0:0.35"
+                                 FilterMode="None"
+                                 Margin="10,0"
+                                 VerticalAlignment="Center"
+                                 FontSize="13">
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:TaxonSuggestion">
+                            <StackPanel Spacing="1" Margin="2,3">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding SubLine}"
+                                           FontSize="11"
+                                           Foreground="#888888"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ── Status bar ── -->
+        <Border DockPanel.Dock="Bottom"
+                Background="#1C1C1C"
+                BorderBrush="#333333"
+                BorderThickness="0,1,0,0"
+                Padding="10,3">
+            <Grid RowDefinitions="Auto,3">
+                <TextBlock Grid.Row="0"
+                           Text="{Binding StatusText}"
+                           FontSize="12"
+                           Foreground="#777777"
+                           VerticalAlignment="Center"/>
+                <ProgressBar Grid.Row="1"
+                             Value="{Binding TaggingProgress}"
+                             Maximum="1"
+                             IsVisible="{Binding IsTagging}"
+                             Foreground="#0078D4"
+                             Background="Transparent"
+                             Height="3"
+                             Margin="0,2,0,0"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Empty state ── -->
+        <Border IsVisible="{Binding !HasCatalog}" Background="#181818">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12">
+                <TextBlock Text="📂" FontSize="64" HorizontalAlignment="Center"/>
+                <TextBlock Text="Open a folder to explore your bestiary"
+                           FontSize="18" Foreground="#555555" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ── Main split view ── -->
+        <Grid IsVisible="{Binding HasCatalog}" ColumnDefinitions="400,4,*">
+
+            <!-- Folder tree -->
+            <Border Grid.Column="0" Background="#1C1C1C">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top"
+                            Background="#161616"
+                            BorderBrush="#2C2C2C"
+                            BorderThickness="0,0,0,1"
+                            Padding="10,7">
+                        <TextBlock Text="{Binding CatalogRootName}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="#777777"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </Border>
+                <TreeView ItemsSource="{Binding FilteredRootNodes}"
+                          SelectedItem="{Binding SelectedFolder, Mode=TwoWay}"
+                          Background="Transparent"
+                          Padding="4">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate x:DataType="vm:FolderNodeViewModel"
+                                          ItemsSource="{Binding FilteredChildren}">
+                            <Panel>
+                                <Panel.ContextMenu>
+                                    <ContextMenu x:DataType="vm:FolderNodeViewModel">
+                                        <MenuItem Header="Tag this folder with keywords"
+                                                  Command="{Binding ContextTagCommand}"
+                                                  CommandParameter="{Binding FullPath}"/>
+                                        <MenuItem Header="Tag this folder with GPS from iNaturalist…"
+                                                  Command="{Binding ContextTagLocationsCommand}"
+                                                  CommandParameter="{Binding FullPath}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Refresh location names"
+                                                  Command="{Binding ContextRefreshCommand}"
+                                                  CommandParameter="{Binding FullPath}"/>
+                                    </ContextMenu>
+                                </Panel.ContextMenu>
+                                <!-- Blue highlight for search matches -->
+                                <Border CornerRadius="3"
+                                        Background="#1A3D6A"
+                                        IsVisible="{Binding IsSearchMatch}"/>
+                                <DockPanel Margin="2,0">
+                                    <!-- Green dot = synced with iNaturalist DB -->
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="●" FontSize="7"
+                                               VerticalAlignment="Center"
+                                               Margin="4,0,2,0"
+                                               Foreground="#5FAD41"
+                                               IsVisible="{Binding IsSynced}"/>
+                                    <TextBlock Text="{Binding DisplayLabel}"
+                                               Padding="2,3"
+                                               FontSize="13"/>
+                                </DockPanel>
+                            </Panel>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Background="#2C2C2C"
+                          ResizeDirection="Columns"/>
+
+            <!-- ── Photo panel ── -->
+            <Panel Grid.Column="2" Background="#1A1A1A">
+
+                <!-- Preview cards -->
+                <ScrollViewer IsVisible="{Binding IsPreviewMode}"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Photos}" Padding="12"
+                                  DoubleTapped="OnPhotoDoubleTapped">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PhotoViewModel">
+                                <Border Width="210" Margin="6"
+                                        Background="#242424"
+                                        CornerRadius="8"
+                                        ClipToBounds="True">
+                                    <Border.ContextMenu>
+                                        <ContextMenu x:DataType="vm:PhotoViewModel">
+                                            <MenuItem Header="Open" Command="{Binding OpenCommand}"/>
+                                            <MenuItem Header="Reveal in File Explorer" Command="{Binding RevealInExplorerCommand}"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel>
+                                        <Panel Height="140" Background="#2A2A2A">
+                                            <TextBlock Text="🖼" FontSize="36"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#3A3A3A"
+                                                       IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}"/>
+                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                        </Panel>
+                                        <StackPanel Margin="10,8,10,10" Spacing="3">
+                                            <TextBlock Text="{Binding FileName}"
+                                                       FontSize="12" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding FileName}"/>
+                                            <TextBlock Text="{Binding DateTaken}"
+                                                       FontSize="11" Foreground="#888888"/>
+                                            <TextBlock Text="{Binding RatingStars}"
+                                                       FontSize="13" Foreground="#E5B800"
+                                                       Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding Coordinates}"
+                                                       FontSize="10" Foreground="#666666"
+                                                       IsVisible="{Binding Coordinates, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- List view -->
+                <DockPanel IsVisible="{Binding !IsPreviewMode}">
+                    <Border DockPanel.Dock="Top"
+                            Background="#1C1C1C"
+                            BorderBrush="#2C2C2C"
+                            BorderThickness="0,0,0,1"
+                            Padding="0,5">
+                        <Grid ColumnDefinitions="56,*,140,80,180" Margin="8,0">
+                            <Button Grid.Column="1" Content="{Binding NameSortLabel}"
+                                    Command="{Binding SortByNameCommand}"
+                                    Classes="sortHeader"
+                                    HorizontalAlignment="Left"
+                                    Margin="4,0"/>
+                            <Button Grid.Column="2" Content="{Binding DateSortLabel}"
+                                    Command="{Binding SortByDateCommand}"
+                                    Classes="sortHeader"
+                                    HorizontalAlignment="Left"/>
+                            <Button Grid.Column="3" Content="{Binding RatingSortLabel}"
+                                    Command="{Binding SortByRatingCommand}"
+                                    Classes="sortHeader"
+                                    HorizontalAlignment="Left"/>
+                            <TextBlock Grid.Column="4" Text="Location"
+                                       FontSize="11" Foreground="#555555" FontWeight="SemiBold"/>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Photos}"
+                                      DoubleTapped="OnPhotoDoubleTapped">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PhotoViewModel">
+                                    <Border Classes="listRow"
+                                            BorderBrush="#242424"
+                                            BorderThickness="0,0,0,1"
+                                            Background="Transparent">
+                                        <Border.ContextMenu>
+                                            <ContextMenu x:DataType="vm:PhotoViewModel">
+                                                <MenuItem Header="Open" Command="{Binding OpenCommand}"/>
+                                                <MenuItem Header="Reveal in File Explorer" Command="{Binding RevealInExplorerCommand}"/>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        <Grid ColumnDefinitions="56,*,140,80,180"
+                                              Height="52" Margin="8,0">
+                                            <Panel Grid.Column="0" Margin="4">
+                                                <Border Background="#2A2A2A" CornerRadius="3"/>
+                                                <TextBlock Text="🖼"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="16" Foreground="#3A3A3A"
+                                                           IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}"/>
+                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                            </Panel>
+                                            <TextBlock Grid.Column="1" Text="{Binding FileName}"
+                                                       VerticalAlignment="Center" Margin="8,0"
+                                                       FontSize="13" TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding FileName}"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding DateTaken}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#888888" FontSize="12"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding RatingStars}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#E5B800" FontSize="12"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding Coordinates}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#666666" FontSize="11"
+                                                       IsVisible="{Binding Coordinates, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+
+                <!-- No-photos placeholder — last child so it renders on top -->
+                <Border IsVisible="{Binding !HasPhotos}" Background="#1A1A1A">
+                    <TextBlock Text="Select a folder to view photos"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Foreground="#444444"
+                               FontSize="15"/>
+                </Border>
+
+            </Panel>
+        </Grid>
+    </DockPanel>
+</Window>
