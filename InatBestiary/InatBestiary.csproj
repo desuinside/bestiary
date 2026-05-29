@@ -9,6 +9,9 @@
     <AssemblyName>InatBestiary</AssemblyName>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Product>iNat Bestiary</Product>
+    <Description>Wildlife photo catalog with iNaturalist integration</Description>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>

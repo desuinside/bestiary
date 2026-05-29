@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish win-x64
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          dotnet publish InatBestiary/InatBestiary.csproj \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            -p:Version=$VERSION \
+            -o ./publish
+
+      - name: Zip
+        run: |
+          cd publish
+          zip -r "../InatBestiary-${{ github.ref_name }}-win-x64.zip" .
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: iNat Bestiary ${{ github.ref_name }}
+          generate_release_notes: true
+          files: InatBestiary-${{ github.ref_name }}-win-x64.zip
